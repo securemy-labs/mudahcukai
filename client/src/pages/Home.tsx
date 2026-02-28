@@ -83,6 +83,13 @@ export default function Home() {
   const [pcb, setPcb] = useState(0);
   const [zakat, setZakat] = useState(0);
 
+  // Business Income
+  const [useBusinessIncome, setUseBusinessIncome] = useState(false);
+  const [annualSales, setAnnualSales] = useState(0);
+  const [profitMargin, setProfitMargin] = useState(0);
+  const [managerSalary, setManagerSalary] = useState(0);
+  const [otherExpenses, setOtherExpenses] = useState(0);
+
   // UI State
   const [showTaxRate, setShowTaxRate] = useState(false);
   const [showReverseCalculator, setShowReverseCalculator] = useState(false);
@@ -91,7 +98,17 @@ export default function Home() {
 
   // Calculate tax
   const calculation = useMemo(() => {
-    let totalIncome = grossIncome + (hasCompensation ? compensationAmount : 0);
+    let totalIncome = 0;
+    
+    // Calculate income based on source
+    if (useBusinessIncome) {
+      // Business income calculation: (Annual Sales × Profit Margin) + Manager Salary + Other Expenses
+      const grossProfit = annualSales * (profitMargin / 100);
+      totalIncome = grossProfit + managerSalary + otherExpenses;
+    } else {
+      // Personal income
+      totalIncome = grossIncome + (hasCompensation ? compensationAmount : 0);
+    }
     
     // Calculate deductions
     let individualSpouseRelief = 9000; // Individual relief
@@ -172,7 +189,8 @@ export default function Home() {
     grossIncome, hasCompensation, compensationAmount, maritalStatus,
     spouseDisabled, spouseWorking, isDisabled, hasChild,
     parentMedical, prs, medicalInsurance, eduSelf, supportEquip, medical,
-    epf, lifeInsurance, lifestyle, sportEquip, socso, ev, pcb, zakat
+    epf, lifeInsurance, lifestyle, sportEquip, socso, ev, pcb, zakat,
+    useBusinessIncome, annualSales, profitMargin, managerSalary, otherExpenses
   ]);
 
   // Calculate total deductions for reverse calculator
@@ -255,53 +273,166 @@ export default function Home() {
               </div>
               <div className="p-6 space-y-6">
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">
-                    Total Annual Income
-                    <span className="text-xs text-gray-500 block">(Exclude rental income and dividends)</span>
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600">RM</span>
-                    <Input
-                      type="number"
-                      value={grossIncome}
-                      onChange={(e) => setGrossIncome(Number(e.target.value))}
-                      className="flex-1"
-                    />
+                  <Label className="text-sm font-medium mb-3 block">Income Source</Label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={!useBusinessIncome}
+                        onChange={() => setUseBusinessIncome(false)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium">Personal Income</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={useBusinessIncome}
+                        onChange={() => setUseBusinessIncome(true)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium">Business Income</span>
+                    </label>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-4 mb-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={!hasCompensation}
-                        onChange={() => setHasCompensation(false)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">No</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={hasCompensation}
-                        onChange={() => setHasCompensation(true)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">Yes</span>
-                    </label>
+                {!useBusinessIncome && (
+                  <>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Total Annual Income
+                        <span className="text-xs text-gray-500 block">(Exclude rental income and dividends)</span>
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">RM</span>
+                        <Input
+                          type="number"
+                          value={grossIncome}
+                          onChange={(e) => setGrossIncome(Number(e.target.value))}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <div className="flex items-center gap-4 mb-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={!hasCompensation}
+                            onChange={() => setHasCompensation(false)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">No</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={hasCompensation}
+                            onChange={() => setHasCompensation(true)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">Yes</span>
+                        </label>
+                      </div>
+                      <Label className="text-sm font-medium">Do you get compensation for loss of employment?</Label>
+                      {hasCompensation && (
+                        <Input
+                          type="number"
+                          value={compensationAmount}
+                          onChange={(e) => setCompensationAmount(Number(e.target.value))}
+                          placeholder="Compensation Amount Received"
+                          className="mt-2"
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {useBusinessIncome && (
+                  <div className="space-y-4 border-t pt-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Annual Sales</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">RM</span>
+                        <Input
+                          type="number"
+                          value={annualSales}
+                          onChange={(e) => setAnnualSales(Number(e.target.value))}
+                          placeholder="Total annual sales"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Profit Margin (%)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={profitMargin}
+                          onChange={(e) => setProfitMargin(Number(e.target.value))}
+                          placeholder="Profit margin percentage"
+                          className="flex-1"
+                        />
+                        <span className="text-gray-600">%</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Gross Profit = Annual Sales x Profit Margin</p>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Annual Manager Salary</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">RM</span>
+                        <Input
+                          type="number"
+                          value={managerSalary}
+                          onChange={(e) => setManagerSalary(Number(e.target.value))}
+                          placeholder="Manager salary"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Other Expenses</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">RM</span>
+                        <Input
+                          type="number"
+                          value={otherExpenses}
+                          onChange={(e) => setOtherExpenses(Number(e.target.value))}
+                          placeholder="Other business expenses"
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+
+                    {annualSales > 0 && profitMargin > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <p className="text-xs text-gray-600 mb-2">Business Income Calculation:</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>Gross Profit (Sales x Margin)</span>
+                            <span className="font-semibold">RM {(annualSales * (profitMargin / 100)).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>+ Manager Salary</span>
+                            <span className="font-semibold">RM {managerSalary.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>+ Other Expenses</span>
+                            <span className="font-semibold">RM {otherExpenses.toLocaleString()}</span>
+                          </div>
+                          <div className="border-t pt-1 mt-1 flex justify-between font-bold text-blue-700">
+                            <span>Total Business Income</span>
+                            <span>RM {(annualSales * (profitMargin / 100) + managerSalary + otherExpenses).toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <Label className="text-sm font-medium">Do you get compensation for loss of employment?</Label>
-                  {hasCompensation && (
-                    <Input
-                      type="number"
-                      value={compensationAmount}
-                      onChange={(e) => setCompensationAmount(Number(e.target.value))}
-                      placeholder="Compensation Amount Received"
-                      className="mt-2"
-                    />
-                  )}
-                </div>
+                )}
               </div>
             </div>
 
